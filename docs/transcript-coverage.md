@@ -16,7 +16,7 @@ Transcript nguồn là một khóa học SQL Server. Bảng này ghi lại cách
 | 035-046 | docs/querying/ | No JOIN, JOIN types, anti-join, CROSS JOIN, cách chọn JOIN và multiple-table JOIN | Đã triển khai theo transcript |
 | 047-055 | docs/querying/ | SET rules, UNION, UNION ALL, EXCEPT, INTERSECT, combine và delta detection | Đã triển khai theo transcript |
 | 056-064 | docs/querying/ | Data transformation, SQL functions, CONCAT, UPPER, LOWER, TRIM, REPLACE, length/LEN, LEFT, RIGHT và SUBSTRING | Đã triển khai theo transcript |
-| 065-082 | docs/querying/ | Numeric functions, date/time functions và casting | Đã lên kế hoạch |
+| 065-082 | docs/querying/03-number-date-time-and-casting.md | Numeric functions, date/time, timezone, formatting, casting, date arithmetic và validation | Đã triển khai theo transcript |
 | 083-099 | docs/foundations/ và docs/querying/ | NULL, CASE và conditional transformation | Foundation đã có; cần mở rộng theo transcript |
 | 100-134 | docs/querying/ | Window aggregate, ranking và value function | Đã lên kế hoạch |
 | 135-159 | docs/advanced-sql/ | Subquery và CTE | Đã lên kế hoạch |
