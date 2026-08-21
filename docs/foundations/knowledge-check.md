@@ -1,48 +1,47 @@
-# Foundation Knowledge Check
+# Bài kiểm tra kiến thức nền tảng
 
-Answer without looking at the solution file.
+Hãy trả lời mà không mở file solution.
 
-1. **Multiple choice:** Which component chooses between a sequential scan and an index scan?
+1. **Trắc nghiệm:** Component nào chọn giữa sequential scan và index scan?
    - A. SQL client
    - B. Query planner/optimizer
    - C. Foreign key
    - D. Connection pool
 
-2. **True/false:** A table has a guaranteed physical row order if it has a primary key.
+2. **Đúng/sai:** Một table có physical row order được đảm bảo nếu nó có primary key.
 
-3. **Short answer:** Why should an API top-N query normally include a deterministic `ORDER BY`?
+3. **Trả lời ngắn:** Vì sao API top-N query thường cần deterministic `ORDER BY`?
 
-4. **Predict the output:** Which expression is `TRUE`?
+4. **Dự đoán output:** Expression nào là `TRUE`?
 
-   ```sql
+   ~~~sql
    SELECT NULL = NULL, NULL IS NULL, NULL <> 10;
-   ```
+   ~~~
 
-5. **Multiple choice:** Which constraint protects that every order references an existing customer?
+5. **Trắc nghiệm:** Constraint nào bảo vệ việc mọi order đều tham chiếu đến một customer tồn tại?
    - A. `CHECK`
    - B. `UNIQUE`
    - C. `FOREIGN KEY`
    - D. `DEFAULT`
 
-6. **Explain why:** Why can a foreign key be correct but still leave a join slow?
+6. **Giải thích:** Vì sao foreign key có thể đúng nhưng join vẫn chậm?
 
-7. **Query analysis:** What is wrong with this query for the month of March?
+7. **Phân tích query:** Query sau có vấn đề gì khi lấy dữ liệu tháng March?
 
-   ```sql
+   ~~~sql
    WHERE date(ordered_at) BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'
-   ```
+   ~~~
 
-8. **True/false:** `EXPLAIN ANALYZE` executes the statement being analyzed.
+8. **Đúng/sai:** `EXPLAIN ANALYZE` execute statement đang được phân tích.
 
-9. **Short answer:** What should an application do if a transaction receives a serialization failure?
+9. **Trả lời ngắn:** Application nên làm gì nếu transaction nhận serialization failure?
 
-10. **Multiple choice:** Which operation removes the table definition?
+10. **Trắc nghiệm:** Operation nào xóa table definition?
     - A. `DELETE`
     - B. `TRUNCATE`
     - C. `DROP TABLE`
     - D. `VACUUM`
 
-11. **Predict the result:** Why can `NOT IN` return no rows when its subquery contains `NULL`?
+11. **Dự đoán kết quả:** Vì sao `NOT IN` có thể không trả row khi subquery chứa `NULL`?
 
-12. **Engineering reasoning:** Give one reason to enforce an invariant in both the service and database.
-
+12. **Suy luận engineering:** Nêu một lý do nên enforce một invariant ở cả service và database.

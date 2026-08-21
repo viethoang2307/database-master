@@ -1,58 +1,58 @@
-# Lesson 5 — Filtering, `NULL` and Three-Valued Logic
+# Lesson 5 — Filtering, `NULL` và Three-Valued Logic
 
-## Lesson overview
+## Tổng quan lesson
 
-The source course treats comparison and logical operators as simple building blocks. The difficult production detail is that SQL predicates operate with three logical outcomes: `TRUE`, `FALSE` and `UNKNOWN`. `NULL` represents missing/unknown/not-applicable data; it is not zero, an empty string or a normal value.
+Khóa học nguồn xem comparison và logical operator như các building block đơn giản. Chi tiết production khó hơn là SQL predicate có ba kết quả logic: `TRUE`, `FALSE` và `UNKNOWN`. `NULL` biểu diễn dữ liệu missing/unknown/not-applicable; nó không phải zero, empty string hay một normal value.
 
-### Learning objectives
+### Mục tiêu học tập
 
-- Use comparison, `IN`, `BETWEEN`, `LIKE`, `AND`, `OR` and `NOT` correctly.
-- Predict how `NULL` changes a predicate.
-- Explain why `column = NULL` is wrong.
-- Use `IS NULL`, `COALESCE` and `CASE` intentionally.
-- Recognize the `NOT IN` plus `NULL` trap.
-- Keep predicates index-friendly when performance matters.
+- Dùng comparison, `IN`, `BETWEEN`, `LIKE`, `AND`, `OR` và `NOT` đúng cách.
+- Dự đoán `NULL` thay đổi predicate như thế nào.
+- Giải thích vì sao `column = NULL` là sai.
+- Dùng `IS NULL`, `COALESCE` và `CASE` có chủ đích.
+- Nhận diện bẫy `NOT IN` kết hợp với `NULL`.
+- Giữ predicate index-friendly khi performance quan trọng.
 
 ## Formal model
 
-For a `WHERE` clause, PostgreSQL keeps rows for which the predicate is `TRUE`. Rows for which it is `FALSE` or `UNKNOWN` are filtered out.
+Với `WHERE` clause, PostgreSQL giữ row khi predicate evaluate thành `TRUE`. Row có predicate là `FALSE` hoặc `UNKNOWN` sẽ bị filter.
 
-```text
+~~~text
 NULL = 5       -> UNKNOWN
 NULL <> 5      -> UNKNOWN
 NULL = NULL    -> UNKNOWN
 NULL IS NULL   -> TRUE
-```
+~~~
 
-### Example
+### Ví dụ
 
-```sql
+~~~sql
 SELECT customer_id, full_name, country
 FROM sales.customers
 WHERE country IS NULL;
-```
+~~~
 
-This returns Farah because `IS NULL` tests the null marker directly. `country = NULL` returns no rows because ordinary equality cannot establish that two unknown values are equal.
+Query trả về Farah vì `IS NULL` kiểm tra trực tiếp null marker. `country = NULL` không trả row vì ordinary equality không thể xác định hai unknown value có bằng nhau hay không.
 
-## Operators and edge cases
+## Operator và edge case
 
-```sql
--- Inclusive range; use half-open ranges for timestamps when appropriate.
+~~~sql
+-- Inclusive range; dùng half-open range cho timestamp khi phù hợp.
 SELECT order_id, ordered_at
 FROM sales.orders
 WHERE ordered_at >= TIMESTAMPTZ '2025-03-01 00:00:00+07'
   AND ordered_at <  TIMESTAMPTZ '2025-04-01 00:00:00+07';
 
--- Pattern matching; the leading wildcard can prevent ordinary b-tree prefix use.
+-- Pattern matching; leading wildcard có thể ngăn b-tree prefix use thông thường.
 SELECT product_id, product_name
 FROM sales.products
 WHERE product_name ILIKE 'wire%';
 
--- Explicit fallback for display, not for pretending missing data was present.
+-- Fallback rõ ràng cho display; không giả vờ rằng dữ liệu thiếu đã tồn tại.
 SELECT full_name, COALESCE(country, 'unknown') AS display_country
 FROM sales.customers;
 
--- Categorize values while preserving the source amount.
+-- Phân loại value nhưng vẫn giữ amount gốc.
 SELECT
     product_name,
     unit_price,
@@ -62,14 +62,14 @@ SELECT
         ELSE 'entry'
     END AS price_band
 FROM sales.products;
-```
+~~~
 
-## The `NOT IN` trap
+## Bẫy `NOT IN`
 
-If the right-hand set contains `NULL`, `x NOT IN (...)` can evaluate to `UNKNOWN` for values that are not equal to any known member. Prefer `NOT EXISTS` when the subquery may contain nulls and the intended meaning is anti-membership.
+Nếu right-hand set chứa `NULL`, `x NOT IN (...)` có thể evaluate thành `UNKNOWN` với value không bằng bất kỳ member đã biết nào. Khi subquery có thể chứa null và ý định là anti-membership, ưu tiên `NOT EXISTS`.
 
-```sql
--- Robust anti-membership shape.
+~~~sql
+-- Dạng anti-membership robust.
 SELECT c.customer_id, c.full_name
 FROM sales.customers AS c
 WHERE NOT EXISTS (
@@ -77,54 +77,53 @@ WHERE NOT EXISTS (
     FROM sales.orders AS o
     WHERE o.customer_id = c.customer_id
 );
-```
+~~~
 
-## Internal and performance behavior
+## Hành vi bên trong và performance
 
-The planner can use statistics to estimate predicate selectivity. A simple predicate on an indexed column is more likely to be useful than applying a function to every row:
+Planner có thể dùng statistics để estimate predicate selectivity. Predicate đơn giản trên indexed column thường hữu ích hơn việc apply function lên mọi row:
 
-```sql
--- Often more index-friendly for a timestamp range:
+~~~sql
+-- Thường index-friendly hơn với timestamp range:
 WHERE ordered_at >= :start_at AND ordered_at < :end_at
 
--- May require an expression index or more work:
+-- Có thể cần expression index hoặc nhiều work hơn:
 WHERE date(ordered_at) = :target_date
-```
+~~~
 
-This is not an absolute rule; inspect `EXPLAIN`. `LIKE 'wire%'` has a prefix that can be indexable under suitable collation/operator-class conditions, while `LIKE '%wire%'` generally needs a different search strategy such as trigram indexing for large workloads.
+Đây không phải quy luật tuyệt đối; hãy inspect `EXPLAIN`. `LIKE 'wire%'` có prefix có thể indexable dưới collation/operator-class phù hợp, trong khi `LIKE '%wire%'` thường cần search strategy khác, chẳng hạn trigram indexing, khi workload lớn.
 
-## Backend perspective
+## Góc nhìn Backend
 
-Decide whether a missing value means unknown, not applicable or not yet collected. That policy affects API serialization, filters, reporting and uniqueness. Do not silently turn every `NULL` into an empty string merely to simplify JSON.
+Hãy quyết định missing value có nghĩa là unknown, not applicable hay not yet collected. Policy này ảnh hưởng API serialization, filter, reporting và uniqueness. Đừng âm thầm đổi mọi `NULL` thành empty string chỉ để JSON dễ xử lý hơn.
 
-When constructing optional filters, use parameterized predicates and a deliberate query shape. A query that includes `WHERE (:country IS NULL OR country = :country)` may be convenient but can complicate selectivity and planning; measure it for high-volume endpoints.
+Khi tạo optional filter, dùng parameterized predicate và query shape có chủ đích. Query dạng `WHERE (:country IS NULL OR country = :country)` tiện dụng nhưng có thể làm selectivity và planning phức tạp; hãy đo trong endpoint volume cao.
 
-## Common misconceptions
+## Hiểu lầm thường gặp
 
-- `NULL` is not the same as `0`, `''` or `FALSE`.
-- `BETWEEN` is inclusive at both ends; timestamp reporting often benefits from `[start, end)` ranges.
-- `CASE` is an expression returning a value; it is not a general procedural `if` block.
-- `COALESCE` is not data repair. It only changes the expression result.
+- `NULL` không giống `0`, `''` hay `FALSE`.
+- `BETWEEN` inclusive ở cả hai đầu; timestamp reporting thường an toàn hơn với range `[start, end)`.
+- `CASE` là expression trả về value; nó không phải general procedural `if` block.
+- `COALESCE` không phải data repair; nó chỉ thay đổi kết quả của expression.
 
-## Hands-on lab
+## Lab thực hành
 
-1. Run the queries in `sql/foundations/01_querying_sales.sql`.
-2. Predict the result of `WHERE country = NULL`, then replace it with `IS NULL`.
-3. Create a temporary values table containing `(1), (2), (NULL)` and compare `NOT IN` with `NOT EXISTS`.
-4. Run `EXPLAIN` for a timestamp range and for `date(ordered_at) = ...`; explain any difference without assuming the plan must change on the small demo table.
+1. Chạy các query trong `sql/foundations/01_querying_sales.sql`.
+2. Dự đoán kết quả của `WHERE country = NULL`, sau đó thay bằng `IS NULL`.
+3. Tạo temporary values table gồm `(1), (2), (NULL)` và so sánh `NOT IN` với `NOT EXISTS`.
+4. Chạy `EXPLAIN` cho timestamp range và cho `date(ordered_at) = ...`; giải thích khác biệt nếu có, nhưng không giả định plan bắt buộc phải khác trên demo table nhỏ.
 
-## Interview questions
+## Câu hỏi phỏng vấn
 
-1. **Junior — Why does `column = NULL` not work?**  Equality with an unknown value yields `UNKNOWN`; `IS NULL` is the null test.
-2. **Junior — What rows pass `WHERE`?**  Only rows whose predicate evaluates to `TRUE`; `FALSE` and `UNKNOWN` are excluded.
-3. **Mid — Why can `NOT IN` behave unexpectedly?**  A `NULL` in the compared set can make the result `UNKNOWN`; `NOT EXISTS` expresses anti-membership more robustly.
-4. **Mid — Is `BETWEEN` inclusive?**  Yes, for both endpoints; explicit half-open timestamp ranges are often safer for adjacent periods.
-5. **Senior — Why can wrapping an indexed column in a function hurt performance?**  A normal index is ordered by the stored expression, not necessarily by the function result, so the planner may not be able to use it without an expression index or rewrite.
+1. **Junior — Vì sao `column = NULL` không hoạt động?** Equality với unknown value cho kết quả `UNKNOWN`; `IS NULL` mới là null test.
+2. **Junior — Row nào pass `WHERE`?** Chỉ row có predicate evaluate thành `TRUE`; `FALSE` và `UNKNOWN` bị loại.
+3. **Mid — Vì sao `NOT IN` có thể cho kết quả bất ngờ?** `NULL` trong compared set có thể làm result thành `UNKNOWN`; `NOT EXISTS` biểu đạt anti-membership robust hơn.
+4. **Mid — `BETWEEN` có inclusive không?** Có, ở cả hai endpoint; với timestamp liền kề, explicit half-open range thường an toàn hơn.
+5. **Senior — Vì sao bọc indexed column trong function có thể làm performance kém?** Normal index được sắp theo stored expression, không nhất thiết theo function result; planner có thể không dùng được nó nếu không có expression index hoặc rewrite.
 
-## References
+## Tài liệu tham khảo
 
 - [PostgreSQL Comparison Functions and Operators](https://www.postgresql.org/docs/current/functions-comparison.html)
 - [PostgreSQL Conditional Expressions](https://www.postgresql.org/docs/current/functions-conditional.html)
 - [PostgreSQL Pattern Matching](https://www.postgresql.org/docs/current/functions-matching.html)
 - [PostgreSQL Indexes on Expressions](https://www.postgresql.org/docs/current/indexes-expressional.html)
-

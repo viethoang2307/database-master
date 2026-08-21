@@ -1,20 +1,20 @@
-# Lesson 2 — Query Lifecycle and `SELECT`
+# Lesson 2 — Vòng đời query và `SELECT`
 
-## Lesson overview
+## Tổng quan lesson
 
-The transcript introduces `SELECT`, `FROM`, `WHERE`, sorting and limiting results. The important repair is that SQL is not executed simply from the first line to the last line. PostgreSQL parses a statement, transforms it into a query tree, plans physical operators and then executes the plan.
+Transcript giới thiệu `SELECT`, `FROM`, `WHERE`, sorting và giới hạn kết quả. Điểm cần sửa quan trọng là SQL không được thực thi đơn giản từ dòng đầu tiên đến dòng cuối cùng. PostgreSQL parse statement, chuyển nó thành query tree, lập physical operators rồi mới execute plan.
 
-### Learning objectives
+### Mục tiêu học tập
 
-- Write a projection with explicit columns instead of relying on `SELECT *`.
-- Explain logical query processing versus physical execution.
-- Produce deterministic top-N and paginated results.
-- Read the basic shape of a PostgreSQL plan.
-- Distinguish estimated rows/cost from actual rows/time.
+- Viết projection với các column rõ ràng thay vì phụ thuộc vào `SELECT *`.
+- Giải thích logical query processing khác physical execution như thế nào.
+- Tạo kết quả top-N và pagination có tính xác định.
+- Đọc hình dạng cơ bản của PostgreSQL plan.
+- Phân biệt estimated rows/cost với actual rows/time.
 
 ## Mental map
 
-```text
+~~~text
 SQL text + parameters
         |
         v
@@ -31,20 +31,20 @@ Seq Scan | Index Scan | Join | Sort | Aggregate
         |
         v
 Rows returned to the client
-```
+~~~
 
-## Concept: projection, filtering and ordering
+## Khái niệm: projection, filtering và ordering
 
-### Formal definition
+### Định nghĩa chính xác
 
-- **Projection** chooses output expressions/columns.
-- **Filtering** chooses rows satisfying a predicate.
-- **Ordering** defines the requested output order; without `ORDER BY`, row order is not guaranteed.
-- **Limiting** restricts the number of rows returned, but does not define which rows are selected without ordering.
+- **Projection** chọn các output expression/column.
+- **Filtering** chọn những row thỏa predicate.
+- **Ordering** yêu cầu thứ tự output; nếu không có `ORDER BY` thì thứ tự row không được đảm bảo.
+- **Limiting** giới hạn số row trả về, nhưng nếu không có ordering thì không xác định được row nào sẽ được chọn.
 
-### Example
+### Ví dụ
 
-```sql
+~~~sql
 SELECT
     o.order_id,
     c.full_name AS customer_name,
@@ -55,95 +55,94 @@ JOIN sales.customers AS c ON c.customer_id = o.customer_id
 WHERE o.order_status IN ('paid', 'shipped')
 ORDER BY o.ordered_at DESC, o.order_id DESC
 LIMIT 5;
-```
+~~~
 
-The result contains at most five paid or shipped orders, newest first. `order_id` is a tie-breaker so two orders with the same timestamp do not make pagination unstable.
+Kết quả có tối đa năm order ở trạng thái paid hoặc shipped, xếp mới nhất trước. `order_id` là tie-breaker để hai order cùng timestamp không làm pagination bị thiếu hoặc lặp row.
 
-### Logical order versus written order
+### Logical order và written order
 
-A useful teaching model is:
+Một teaching model hữu ích là:
 
-```text
+~~~text
 FROM / JOIN -> WHERE -> GROUP BY -> HAVING -> SELECT -> DISTINCT -> ORDER BY -> LIMIT
-```
+~~~
 
-This is a logical model, not a promise that PostgreSQL physically performs every operation in that exact order. The optimizer may push a predicate down, use an index for ordering, or eliminate unnecessary work while preserving the result semantics.
+Đây là logical model, không phải lời hứa rằng PostgreSQL sẽ physically thực hiện mọi operation đúng theo thứ tự đó. Optimizer có thể push predicate xuống sớm hơn, dùng index cho ordering hoặc loại bỏ work không cần thiết nhưng vẫn giữ nguyên result semantics.
 
-## Internal database behavior
+## Hành vi bên trong database
 
-For a simple query, PostgreSQL may choose a sequential scan over table pages. For a selective predicate and a useful index, it may choose an index scan or bitmap scan. The planner compares estimated costs; it does not blindly prefer indexes.
+Với query đơn giản, PostgreSQL có thể chọn sequential scan trên các table page. Với predicate selective và index phù hợp, nó có thể chọn index scan hoặc bitmap scan. Planner so sánh estimated cost; nó không mặc định ưu tiên index.
 
-`EXPLAIN` displays the plan without executing it. `EXPLAIN ANALYZE` executes the statement and reports observed row counts and timings, so use it carefully with `UPDATE`, `DELETE` or other side effects. `BUFFERS` helps show shared/local/temp block activity.
+`EXPLAIN` hiển thị plan mà không execute query. `EXPLAIN ANALYZE` execute statement và báo row count, timing quan sát được, vì vậy phải đặc biệt cẩn thận với `UPDATE`, `DELETE` hoặc statement có side effect. `BUFFERS` giúp quan sát hoạt động trên shared/local/temp block.
 
-Example:
+Ví dụ:
 
-```sql
+~~~sql
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT order_id, customer_id, ordered_at
 FROM sales.orders
 WHERE customer_id = 8
 ORDER BY ordered_at DESC;
-```
+~~~
 
-The exact plan is environment-dependent. Read the node tree from the bottom upward, compare `rows=` with `actual rows=`, and look for large misestimates or expensive sorts/scans.
+Plan cụ thể phụ thuộc environment. Hãy đọc node tree từ dưới lên, so sánh `rows=` với `actual rows=`, đồng thời tìm misestimate lớn hoặc sort/scan tốn kém.
 
-## Performance implications
+## Tác động performance
 
-- Returning fewer columns reduces network and materialization work.
-- Filtering early can reduce rows consumed by later joins or aggregates, but the optimizer decides how to implement it.
-- `LIMIT` can reduce work when the plan can produce ordered rows incrementally; it does not make an unordered full scan cheap automatically.
-- Offset pagination becomes increasingly expensive when the database must skip many rows. Keyset pagination uses a stable cursor such as `(ordered_at, order_id)`.
+- Trả ít column hơn làm giảm work ở network và materialization.
+- Filtering sớm có thể giảm số row đi vào join hoặc aggregate phía sau, nhưng optimizer quyết định cách thực thi.
+- `LIMIT` có thể giảm work khi plan tạo ra row theo đúng order một cách incremental; nó không tự biến unordered full scan thành operation rẻ.
+- Offset pagination thường ngày càng đắt khi database phải bỏ qua nhiều row. Keyset pagination dùng stable cursor như `(ordered_at, order_id)`.
 
-## Backend perspective
+## Góc nhìn Backend
 
-Never construct a user-provided `ORDER BY` identifier by string concatenation. Map an approved API sort key to a fixed SQL expression. Bind values as parameters.
+Không bao giờ tạo identifier trong `ORDER BY` từ input người dùng bằng string concatenation. Hãy map API sort key được cho phép sang một SQL expression cố định. Bind value bằng parameter.
 
-JPA example:
+Ví dụ JPA:
 
-```java
+~~~java
 @Query("""
     select o from OrderEntity o
     where o.customer.id = :customerId
     order by o.orderedAt desc, o.id desc
     """)
 List<OrderEntity> findRecentOrders(long customerId, Pageable pageable);
-```
+~~~
 
-The ORM may generate a `SELECT` with joins and a limit. Inspect generated SQL and the real execution plan when latency matters.
+ORM có thể sinh `SELECT` kèm join và limit. Khi latency quan trọng, hãy inspect generated SQL và execution plan thực tế.
 
-## Common mistakes
+## Sai lầm thường gặp
 
-- Assuming rows are naturally ordered by primary key.
-- Using `SELECT *` in an API projection.
-- Applying `LIMIT` without `ORDER BY` for a business-facing top-N result.
-- Treating `EXPLAIN` cost units as milliseconds.
-- Believing an index must be used because one exists.
+- Giả định row tự nhiên được order theo primary key.
+- Dùng `SELECT *` trong API projection.
+- Dùng `LIMIT` không có `ORDER BY` cho top-N phục vụ business.
+- Xem cost unit của `EXPLAIN` như milliseconds.
+- Nghĩ rằng index chắc chắn được dùng chỉ vì index tồn tại.
 
-## Hands-on lab
+## Lab thực hành
 
-Run `sql/foundations/01_querying_sales.sql`, then run `sql/labs/01_query_plan.sql` as one session. Before the second query-plan `EXPLAIN`, predict whether PostgreSQL will use an index, bitmap scan or sequential scan. The lab deliberately avoids asserting one answer because planner choices depend on cost and statistics.
+Chạy `sql/foundations/01_querying_sales.sql`, sau đó chạy `sql/labs/01_query_plan.sql` trong cùng một session. Trước query-plan `EXPLAIN` thứ hai, hãy dự đoán PostgreSQL sẽ dùng index, bitmap scan hay sequential scan. Lab cố ý không khẳng định một đáp án duy nhất vì plan phụ thuộc vào cost và statistics.
 
-## Comparison
+## So sánh
 
-| Operation | Purpose | Internal behavior | Typical use |
+| Operation | Mục đích | Hành vi bên trong | Use case điển hình |
 | --- | --- | --- | --- |
-| `SELECT` | Read/project rows | Planner chooses scans and operators | API reads and reports |
-| `SELECT ... ORDER BY` | Request deterministic order | May sort or exploit ordered access path | Recent records, top-N |
-| `SELECT ... LIMIT` | Cap result count | May stop early, but only after satisfying ordering/filtering | Page size |
-| `EXPLAIN` | Inspect planned work | Does not execute the statement | Plan analysis |
-| `EXPLAIN ANALYZE` | Measure observed execution | Executes the statement | Controlled performance investigation |
+| `SELECT` | Đọc/project row | Planner chọn scan và operator | API read và report |
+| `SELECT ... ORDER BY` | Yêu cầu thứ tự xác định | Có thể sort hoặc tận dụng ordered access path | Recent record, top-N |
+| `SELECT ... LIMIT` | Giới hạn số result | Có thể dừng sớm, nhưng chỉ sau khi đáp ứng ordering/filtering | Page size |
+| `EXPLAIN` | Inspect work dự kiến | Không execute statement | Phân tích plan |
+| `EXPLAIN ANALYZE` | Đo execution quan sát được | Execute statement | Điều tra performance có kiểm soát |
 
-## Interview questions
+## Câu hỏi phỏng vấn
 
-1. **Junior — Why is `ORDER BY` needed with `LIMIT`?**  Without it, the database may return any qualifying rows because relational results are unordered by default.
-2. **Junior — What is a sequential scan?**  An access method that examines table pages/rows sequentially.
-3. **Mid — Why can a sequential scan be faster than an index scan?**  If many rows qualify, sequential I/O and filtering can cost less than many random heap lookups.
-4. **Mid — What does `actual rows` tell you in `EXPLAIN ANALYZE`?**  The observed rows emitted by a plan node, useful for comparing reality with estimates.
-5. **Senior — Why can an ORM-generated query be correct but still slow?**  Correctness and access-path efficiency are separate; joins, projections, predicates, row estimates and indexes may still produce an expensive plan.
+1. **Junior — Vì sao cần `ORDER BY` cùng với `LIMIT`?** Nếu không có `ORDER BY`, database có thể trả về bất kỳ row nào thỏa điều kiện vì relational result mặc định không có thứ tự.
+2. **Junior — Sequential scan là gì?** Là access method kiểm tra tuần tự các table page/row.
+3. **Mid — Vì sao sequential scan đôi khi nhanh hơn index scan?** Khi nhiều row thỏa predicate, sequential I/O và filtering có thể rẻ hơn nhiều lần heap lookup ngẫu nhiên.
+4. **Mid — `actual rows` cho biết điều gì trong `EXPLAIN ANALYZE`?** Nó cho biết số row node đã emit trên thực tế, hữu ích để so sánh reality với estimate.
+5. **Senior — Vì sao ORM-generated query có thể đúng nhưng vẫn chậm?** Correctness và access-path efficiency là hai vấn đề khác nhau; join, projection, predicate, row estimate và index vẫn có thể tạo ra plan đắt.
 
-## References
+## Tài liệu tham khảo
 
 - [PostgreSQL `SELECT`](https://www.postgresql.org/docs/current/sql-select.html)
 - [Using `EXPLAIN`](https://www.postgresql.org/docs/current/using-explain.html)
-- [Keyset pagination discussion in PostgreSQL documentation](https://www.postgresql.org/docs/current/queries-limit.html)
-
+- [Giới hạn query và pagination trong PostgreSQL](https://www.postgresql.org/docs/current/queries-limit.html)

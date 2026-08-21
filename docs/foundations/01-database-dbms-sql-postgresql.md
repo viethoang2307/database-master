@@ -1,26 +1,26 @@
-# Lesson 1 — Database, DBMS, SQL and PostgreSQL
+# Lesson 1 — Database, DBMS, SQL và PostgreSQL
 
-## Lesson overview
+## Tổng quan lesson
 
-The transcript begins with the motivation for databases: applications and businesses create more data than is practical to manage as unrelated files. This lesson repairs the simplified “database is a container” explanation and introduces the components a backend engineer actually operates.
+Transcript bắt đầu từ động lực ra đời của database: application và business tạo ra nhiều dữ liệu hơn mức có thể quản lý thực tế bằng các file rời rạc. Lesson này sửa cách giải thích đơn giản “database là một container” và giới thiệu những thành phần mà backend engineer thật sự vận hành.
 
-### Prerequisites
+### Điều kiện tiên quyết
 
-Basic command-line use, simple programming variables and a rough understanding of tables are sufficient. No ORM knowledge is assumed.
+Biết sử dụng command line cơ bản, hiểu biến trong programming và có hình dung sơ bộ về table là đủ. Không yêu cầu kiến thức ORM.
 
-### Learning objectives
+### Mục tiêu học tập
 
-By the end of this lesson, you should be able to:
+Sau lesson này, bạn có thể:
 
-- Define database, DBMS, SQL, schema, relation, tuple and attribute.
-- Explain why a DBMS is more than a file format.
-- Distinguish a PostgreSQL server, database, schema and table.
-- Identify which work belongs to the application and which work belongs to PostgreSQL.
-- Connect to the lab database and verify its identity.
+- Định nghĩa database, DBMS, SQL, schema, relation, tuple và attribute.
+- Giải thích vì sao DBMS không chỉ là một file format.
+- Phân biệt PostgreSQL server, database, schema và table.
+- Xác định công việc nào thuộc application và công việc nào thuộc PostgreSQL.
+- Kết nối đến lab database và xác minh đúng database, role và server đang dùng.
 
-## Big picture
+## Bức tranh lớn
 
-```text
+~~~text
 Backend application
         |
         | parameterized SQL over a connection
@@ -32,120 +32,119 @@ PostgreSQL server process
                   +--> schema: sales
                             |
                             +--> tables, indexes, constraints
-```
+~~~
 
-A database is a logical collection of related objects. A DBMS is the software that parses SQL, stores and retrieves data, enforces permissions and constraints, coordinates concurrent work, and recovers from failures. PostgreSQL is a DBMS; `database_master` is one database managed by a PostgreSQL server.
+Database là một collection logic của các object có liên quan. DBMS là software parse SQL, lưu và đọc dữ liệu, enforce permission và constraint, điều phối công việc đồng thời, đồng thời khôi phục sau failure. PostgreSQL là một DBMS; `database_master` là một database do PostgreSQL server quản lý.
 
-## Concept: database versus DBMS
+## Khái niệm: database và DBMS
 
-### Intuition
+### Trực giác
 
-A file can hold bytes. A DBMS gives those bytes meaning and controlled operations: it can reject an invalid foreign key, isolate two transactions, recover committed changes after a crash, and choose an access path for a query.
+Một file có thể chứa bytes. DBMS gán meaning và operation có kiểm soát cho các bytes đó: nó có thể từ chối foreign key không hợp lệ, cô lập hai transaction, khôi phục thay đổi đã commit sau crash và chọn access path cho query.
 
-### Formal definition
+### Định nghĩa chính xác
 
-- A **database** is an organized collection of persistent data and metadata.
-- A **DBMS** is software that defines, stores, queries and manages databases.
-- **SQL** is a declarative language used to define structures, manipulate data and query relational data. SQL itself does not specify every implementation detail of a DBMS.
+- **Database** là collection có tổ chức của persistent data và metadata.
+- **DBMS** là software định nghĩa, lưu trữ, query và quản lý database.
+- **SQL** là declarative language dùng để định nghĩa structure, thao tác data và query relational data. Bản thân SQL không quy định mọi chi tiết implementation của DBMS.
 
-### Why it exists
+### Vì sao cần
 
-Backend systems need shared, durable, concurrent and queryable state. A collection of JSON files does not automatically provide constraints, transactions, indexes, recovery or safe concurrent updates.
+Backend system cần state dùng chung, bền vững, hỗ trợ đồng thời và có thể query. Một collection JSON file không tự cung cấp constraint, transaction, index, recovery hoặc concurrent update an toàn.
 
-### How it works
+### Cơ chế
 
-1. A client opens a connection to a server.
-2. The client sends SQL and parameter values.
-3. PostgreSQL parses and analyzes the statement against catalog metadata.
-4. The planner chooses an execution plan.
-5. The executor reads or writes pages through the buffer manager.
-6. For a write, PostgreSQL records enough information in WAL and makes the change visible according to transaction rules.
+1. Client mở connection đến server.
+2. Client gửi SQL và parameter values.
+3. PostgreSQL parse và analyze statement dựa trên catalog metadata.
+4. Planner chọn execution plan.
+5. Executor đọc hoặc ghi pages thông qua buffer manager.
+6. Với write, PostgreSQL ghi đủ thông tin vào WAL để hỗ trợ durability/recovery và làm thay đổi visible theo transaction rules.
 
-### Production notes
+### Ghi chú production
 
-The database is not “just a persistence layer.” It is part of the correctness boundary. A service-level validation can improve user feedback, but only a database constraint protects data when another service, script, job or race condition writes the same tables.
+Database không chỉ là “persistence layer”. Nó là một phần của correctness boundary. Service-level validation giúp trả lỗi thân thiện hơn, nhưng chỉ database constraint mới bảo vệ dữ liệu khi service khác, script, job hoặc race condition cùng ghi vào các table.
 
-## Concept: schema, table, row and column
+## Khái niệm: schema, table, row và column
 
-In the relational model, a table represents a relation, a row represents a tuple, and a column represents an attribute with a declared type. PostgreSQL schemas provide namespaces inside a database; `sales.orders` means table `orders` in schema `sales`.
+Trong relational model, table biểu diễn một relation, row biểu diễn một tuple, còn column biểu diễn một attribute có declared type. PostgreSQL schema cung cấp namespace bên trong database; `sales.orders` nghĩa là table `orders` trong schema `sales`.
 
-The words are related but not interchangeable:
+Các từ này liên quan nhưng không thể dùng thay thế cho nhau:
 
-| Term | Meaning | Example |
+| Term | Ý nghĩa | Ví dụ |
 | --- | --- | --- |
-| Server | PostgreSQL instance accepting connections | Docker `postgres` service |
-| Database | Logical database selected by a connection | `database_master` |
-| Schema | Namespace inside a database | `sales` |
-| Table | Persistent relation of rows and columns | `sales.orders` |
-| Row/tuple | One record in a relation | Order `1001` |
-| Column/attribute | Typed value position | `ordered_at` |
+| Server | PostgreSQL instance nhận connection | Docker service `postgres` |
+| Database | Logical database được connection chọn | `database_master` |
+| Schema | Namespace bên trong database | `sales` |
+| Table | Persistent relation gồm rows và columns | `sales.orders` |
+| Row/tuple | Một record trong relation | Order `1001` |
+| Column/attribute | Vị trí của một typed value | `ordered_at` |
 
-## SQL example
+## Ví dụ SQL
 
-```sql
+~~~sql
 SELECT
     current_database() AS database_name,
     current_schema() AS default_schema,
     current_user AS connected_role,
     version() AS server_version;
-```
+~~~
 
-Expected result: one row identifying the active database, current schema, role and PostgreSQL version. This is useful when a query behaves differently because it was run against the wrong database, role or server version.
+Kết quả kỳ vọng: một row xác định database hiện tại, schema hiện tại, role đang kết nối và PostgreSQL version. Đây là thông tin hữu ích khi query cho kết quả khác nhau vì bạn vô tình chạy trên sai database, role hoặc server version.
 
-## Internal behavior
+## Hành vi bên trong
 
-PostgreSQL stores object definitions in system catalogs. When it analyzes `sales.orders`, it resolves the schema-qualified table name, checks column names and types, and verifies privileges. The catalog is metadata used by the parser, planner and administration tools; it is not the business data itself.
+PostgreSQL lưu định nghĩa object trong system catalog. Khi analyze `sales.orders`, nó resolve tên table có schema-qualified, kiểm tra tên column và type, đồng thời verify privilege. Catalog là metadata được parser, planner và administration tool sử dụng; nó không phải business data.
 
-## Backend and ORM perspective
+## Góc nhìn Backend và ORM
 
-```text
+~~~text
 Controller -> service transaction -> repository/ORM -> connection pool -> PostgreSQL
-```
+~~~
 
-JPA/Hibernate hides the connection and SQL construction, but it still sends SQL to a DBMS. A `@ManyToOne` mapping does not replace a foreign key, and an entity validation annotation does not replace a database `CHECK` or `NOT NULL` constraint.
+JPA/Hibernate ẩn connection và quá trình tạo SQL, nhưng nó vẫn gửi SQL đến DBMS. Mapping `@ManyToOne` không thay thế foreign key, và entity validation annotation không thay thế database `CHECK` hoặc `NOT NULL` constraint.
 
-## Common misconceptions
+## Các hiểu lầm thường gặp
 
-**“SQL is the database.”** SQL is a language. PostgreSQL is the DBMS executing it.
+**“SQL chính là database.”** SQL là một language. PostgreSQL mới là DBMS thực thi language đó.
 
-**“A database guarantees security automatically.”** Security requires roles, privileges, network controls, secret management, auditing and safe query construction. A DBMS provides mechanisms; production configuration determines the result.
+**“Database tự động đảm bảo security.”** Security cần roles, privileges, network controls, secret management, auditing và query construction an toàn. DBMS cung cấp các cơ chế; production configuration quyết định kết quả.
 
-**“The ORM is the source of truth.”** The deployed database schema and its constraints are the final authority for stored data.
+**“ORM là source of truth.”** Database schema đã deploy và các constraint của nó mới là authority cuối cùng đối với dữ liệu được lưu.
 
 ## Lab
 
-Run:
+Chạy:
 
-```powershell
+~~~powershell
 ./scripts/bootstrap.ps1
-```
+~~~
 
-Then inspect:
+Sau đó kiểm tra:
 
-```sql
+~~~sql
 SELECT table_schema, table_name
 FROM information_schema.tables
 WHERE table_schema IN ('sales', 'lab')
 ORDER BY table_schema, table_name;
-```
+~~~
 
 ## Mental models
 
-- A database is durable shared state; a DBMS is the system that makes that state queryable, consistent and recoverable.
-- A schema is a namespace, not a security boundary by itself.
-- SQL states the desired result; the optimizer chooses an implementation.
+- Database là durable shared state; DBMS là system giúp state đó queryable, consistent và recoverable.
+- Schema là namespace, tự nó không phải security boundary.
+- SQL mô tả kết quả mong muốn; optimizer chọn implementation.
 
-## Interview questions
+## Câu hỏi phỏng vấn
 
-1. **Junior — What is the difference between a database and a DBMS?**  A database is the organized data; a DBMS is the software that manages storage, queries, constraints, concurrency and recovery.
-2. **Junior — What is a schema in PostgreSQL?**  A namespace inside a database that groups objects such as tables, views and functions.
-3. **Mid — Why keep constraints in the database if the API validates input?**  Multiple writers and races can bypass API validation; database constraints protect the invariant at the final write boundary.
-4. **Senior — Why can the same SQL query have different performance after moving servers?**  Planner statistics, indexes, data distribution, configuration, PostgreSQL version and hardware can change the chosen plan and I/O cost.
-5. **Senior — Why is SQL called declarative?**  It describes the result or operation rather than prescribing a complete algorithm; the DBMS can choose among valid execution strategies.
+1. **Junior — Database khác DBMS như thế nào?** Database là data được tổ chức; DBMS là software quản lý storage, query, constraint, concurrency và recovery.
+2. **Junior — Schema trong PostgreSQL là gì?** Là namespace bên trong database, dùng để nhóm các object như table, view và function.
+3. **Mid — Vì sao vẫn đặt constraint trong database khi API đã validate input?** Nhiều writer và race có thể bypass API validation; database constraint bảo vệ invariant tại final write boundary.
+4. **Senior — Vì sao cùng một SQL query có thể chạy khác performance sau khi chuyển server?** Planner statistics, indexes, data distribution, configuration, PostgreSQL version và hardware có thể làm thay đổi plan và I/O cost.
+5. **Senior — Vì sao SQL được gọi là declarative?** SQL mô tả kết quả hoặc operation thay vì chỉ định toàn bộ algorithm; DBMS có thể chọn giữa nhiều execution strategy hợp lệ.
 
-## References
+## Tài liệu tham khảo
 
 - [PostgreSQL Architecture](https://www.postgresql.org/docs/current/tutorial-arch.html)
 - [PostgreSQL Database Access Control](https://www.postgresql.org/docs/current/ddl-priv.html)
 - [PostgreSQL Schemas](https://www.postgresql.org/docs/current/ddl-schemas.html)
-

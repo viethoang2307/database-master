@@ -1,29 +1,28 @@
-# Transcript Coverage Map
+# Bản đồ bao phủ transcript
 
-The source transcript is a SQL Server course. This map records how its major ranges are reconstructed in this PostgreSQL curriculum. Individual short videos are grouped when they teach one coherent concept.
+Transcript nguồn là một khóa học SQL Server. Bảng này ghi lại cách các nhóm nội dung chính được tái cấu trúc trong PostgreSQL curriculum. Các video ngắn được gom khi cùng dạy một concept có tính thống nhất.
 
-| Transcript range | Repository section | Expanded treatment | Status |
+| Khoảng transcript | Section trong repository | Nội dung mở rộng | Trạng thái |
 | --- | --- | --- | --- |
-| 001–008 | `docs/foundations/` | SQL, database, DBMS, database types and PostgreSQL setup | Foundation Sprint |
-| 009–011 | `docs/foundations/` | Date/string/NULL foundations and `CASE` prerequisites | Foundation Sprint |
-| 012–017 | `docs/querying/` | Window-function orientation, subqueries, CTE and `TOP`/`LIMIT` | Planned |
-| 018–019 | `docs/advanced-sql/` | Views, CTAS and temporary tables | Planned |
-| 020 | `docs/advanced-sql/` | PostgreSQL functions/procedures and error handling | Planned |
-| 021–023 | `docs/performance/` | Indexes, partitions and performance principles | Planned |
-| 024 | `docs/advanced-sql/` | Responsible AI assistance for SQL development | Planned |
-| 025 | `docs/data-warehouse/` | Data warehouse project framing | Planned |
-| 027–099 | `docs/querying/` | Predicates, joins, set operators, transformations, NULL and `CASE` | Planned |
-| 100–134 | `docs/querying/` | Window aggregate, ranking and value functions | Planned |
-| 135–159 | `docs/advanced-sql/` | Subqueries and CTEs | Planned |
-| 160–198 | `docs/advanced-sql/` | Architecture, views, tables, CTAS, temp tables, procedures and triggers | Planned |
-| 199–221 | `docs/performance/` | Index structures, statistics, execution plans and indexing strategy | Planned |
-| 222–234 | `docs/performance/` | Partitioning and performance tips | Planned |
-| 235–241 | `docs/advanced-sql/` | AI tools and prompt literacy, with safety/correctness checks | Planned |
-| 242–276 | `docs/data-warehouse/` | Bronze/Silver/Gold warehouse project | Planned |
-| 277–297 | `docs/analytics/` | EDA, metrics, reports and project documentation | Planned |
+| 001–008 | `docs/foundations/` | SQL, database, DBMS, database type và PostgreSQL setup | Foundation Sprint |
+| 009–011 | `docs/foundations/` | Date/string/NULL foundation và prerequisite cho `CASE` | Foundation Sprint |
+| 012–017 | `docs/querying/` | Window-function orientation, subquery, CTE và `TOP`/`LIMIT` | Đã lên kế hoạch |
+| 018–019 | `docs/advanced-sql/` | View, CTAS và temporary table | Đã lên kế hoạch |
+| 020 | `docs/advanced-sql/` | PostgreSQL function/procedure và error handling | Đã lên kế hoạch |
+| 021–023 | `docs/performance/` | Index, partition và performance principle | Đã lên kế hoạch |
+| 024 | `docs/advanced-sql/` | Responsible AI assistance cho SQL development | Đã lên kế hoạch |
+| 025 | `docs/data-warehouse/` | Định hình data warehouse project | Đã lên kế hoạch |
+| 027–099 | `docs/querying/` | Predicate, join, set operator, transformation, NULL và `CASE` | Đã lên kế hoạch |
+| 100–134 | `docs/querying/` | Window aggregate, ranking và value function | Đã lên kế hoạch |
+| 135–159 | `docs/advanced-sql/` | Subquery và CTE | Đã lên kế hoạch |
+| 160–198 | `docs/advanced-sql/` | Architecture, view, table, CTAS, temp table, procedure và trigger | Đã lên kế hoạch |
+| 199–221 | `docs/performance/` | Index structure, statistics, execution plan và indexing strategy | Đã lên kế hoạch |
+| 222–234 | `docs/performance/` | Partitioning và performance tip | Đã lên kế hoạch |
+| 235–241 | `docs/advanced-sql/` | AI tool và prompt literacy, kèm safety/correctness check | Đã lên kế hoạch |
+| 242–276 | `docs/data-warehouse/` | Bronze/Silver/Gold warehouse project | Đã lên kế hoạch |
+| 277–297 | `docs/analytics/` | EDA, metric, report và project documentation | Đã lên kế hoạch |
 
-Notes:
+## Ghi chú
 
-- Transcript numbers 026, 034, 100 and 280 are absent or represented by auxiliary course material; the map uses topic ranges rather than assuming a contiguous file set.
-- The combined `FULL_TRANSCRIPT.txt` also contains Java material and is not used as the database source of truth.
-
+- Transcript number 026, 034, 100 và 280 bị thiếu hoặc được thể hiện trong auxiliary course material; bản đồ dùng topic range thay vì giả định file number liên tục.
+- `FULL_TRANSCRIPT.txt` cũng chứa Java material và không được dùng làm source of truth cho database.

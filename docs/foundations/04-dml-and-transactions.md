@@ -1,24 +1,24 @@
-# Lesson 4 — DML and Transaction Boundaries
+# Lesson 4 — DML và Transaction Boundary
 
-## Lesson overview
+## Tổng quan lesson
 
-Data Manipulation Language changes rows. The transcript introduces `INSERT`, `UPDATE` and `DELETE`; a backend engineer must also understand atomicity, retries, concurrent writers and the boundary at which a set of statements becomes one business operation.
+Data Manipulation Language thay đổi row. Transcript giới thiệu `INSERT`, `UPDATE` và `DELETE`; backend engineer còn phải hiểu atomicity, retry, concurrent writer và boundary tại đó một nhóm statement trở thành một business operation.
 
-### Learning objectives
+### Mục tiêu học tập
 
-- Use `INSERT`, `UPDATE`, `DELETE` and PostgreSQL `ON CONFLICT` safely.
-- Explain autocommit versus an explicit transaction.
-- Choose a transaction boundary for a multi-step service operation.
-- Describe at a high level how WAL, MVCC and locks support writes.
-- Identify a race condition that cannot be fixed by application validation alone.
+- Dùng `INSERT`, `UPDATE`, `DELETE` và PostgreSQL `ON CONFLICT` an toàn.
+- Giải thích autocommit khác explicit transaction như thế nào.
+- Chọn transaction boundary cho một service operation nhiều bước.
+- Mô tả ở mức cao cách WAL, MVCC và lock hỗ trợ write.
+- Nhận diện race condition không thể sửa chỉ bằng application validation.
 
-## Intuition
+## Trực giác
 
-A transaction is a logical unit of work. For an order placement, creating the order, inserting its items and reserving inventory should either all become visible together or none should become visible. A transaction is not automatically a distributed transaction across every service; it covers the database session/resources participating in that database transaction.
+Transaction là một logical unit of work. Khi đặt order, việc tạo order, thêm item và reserve inventory phải cùng visible hoặc cùng không visible. Transaction không tự động trở thành distributed transaction xuyên qua mọi service; nó chỉ bao phủ session/resource tham gia vào database transaction đó.
 
-## Basic DML
+## DML cơ bản
 
-```sql
+~~~sql
 INSERT INTO lab.inventory_reservations (order_id, product_id, reserved_quantity)
 VALUES (1001, 1, 1)
 ON CONFLICT (order_id, product_id)
@@ -32,13 +32,13 @@ WHERE order_id = 1001
 
 DELETE FROM lab.inventory_reservations
 WHERE status = 'released';
-```
+~~~
 
-The `UPDATE` and `DELETE` predicates are part of the safety contract. Before running them in production, inspect the predicate with a `SELECT`, use a transaction where appropriate, and verify the affected-row count.
+Predicate của `UPDATE` và `DELETE` là một phần của safety contract. Trước khi chạy production, hãy kiểm tra predicate bằng `SELECT`, dùng transaction khi phù hợp và verify affected-row count.
 
 ## Transaction mechanics
 
-```sql
+~~~sql
 BEGIN;
 
 INSERT INTO lab.inventory_reservations (order_id, product_id, reserved_quantity)
@@ -52,78 +52,77 @@ WHERE order_id = 1002
   AND product_id = 3;
 
 COMMIT;
-```
+~~~
 
-If any required step fails, the service should roll back the transaction and report/retry according to the error class. Autocommit means each statement may be committed separately, which is unsafe when multiple statements must form one invariant-preserving operation.
+Nếu bất kỳ bước bắt buộc nào fail, service phải rollback transaction và report/retry theo error class. Autocommit có nghĩa mỗi statement có thể được commit riêng, không an toàn khi nhiều statement phải tạo thành một operation bảo toàn invariant.
 
-## What happens internally?
+## Điều gì xảy ra bên trong?
 
-At a high level, PostgreSQL:
+Ở mức cao, PostgreSQL:
 
-1. Assigns the transaction a snapshot/identity.
-2. Executes row changes and records WAL information for durability/recovery.
-3. Maintains row-version visibility metadata under MVCC rather than overwriting every reader's view in place.
-4. Uses locks and conflict detection to coordinate concurrent operations.
-5. On commit, makes the transaction's results visible according to isolation rules.
-6. Later reclaims obsolete row versions through vacuuming.
+1. Gán snapshot/identity cho transaction.
+2. Thực thi row change và ghi thông tin WAL để đảm bảo durability/recovery.
+3. Duy trì metadata về visibility của row version bằng MVCC thay vì ghi đè trực tiếp view của mọi reader.
+4. Dùng lock và conflict detection để điều phối operation đồng thời.
+5. Khi commit, làm kết quả của transaction visible theo isolation rule.
+6. Về sau reclaim row version đã obsolete thông qua vacuum.
 
-This is an approximation for learning; exact behavior varies by operation and isolation level. PostgreSQL's default `READ COMMITTED` does not mean “no concurrency issues”; it defines a visibility model, not application-level business serialization.
+Đây là approximation để học; behavior chính xác phụ thuộc operation và isolation level. PostgreSQL mặc định `READ COMMITTED` không có nghĩa là “không còn concurrency issue”; nó định nghĩa visibility model, không tự serialize business invariant ở application level.
 
 ## Production scenario: inventory race
 
-Two requests both read `available = 1`, both decide they can reserve the item, and both write success. Application-side checks can race. Solutions include an atomic conditional update, a row lock with `SELECT ... FOR UPDATE`, a serializable transaction with retry, or a data model that expresses the invariant. The correct choice depends on contention and business semantics.
+Hai request cùng đọc `available = 1`, cùng quyết định có thể reserve item rồi cùng ghi success. Application-side check có thể race. Các hướng xử lý gồm atomic conditional update, row lock với `SELECT ... FOR UPDATE`, serializable transaction kèm retry hoặc data model biểu đạt invariant. Lựa chọn đúng phụ thuộc contention và business semantics.
 
-## Performance implications
+## Tác động performance
 
-- Large transactions hold resources longer, increase rollback cost and can delay vacuum progress.
-- Batch DML reduces round trips but must be bounded to avoid oversized transactions.
-- Indexes accelerate predicates but add write work and WAL/index maintenance.
-- Retried serialization/deadlock failures must be safe under idempotency rules.
+- Transaction lớn giữ resource lâu hơn, tăng rollback cost và có thể làm chậm vacuum progress.
+- Batch DML giảm round trip nhưng phải có giới hạn để transaction không phình quá lớn.
+- Index tăng tốc predicate nhưng thêm write work và WAL/index maintenance.
+- Serialization/deadlock failure được retry phải an toàn theo idempotency rule.
 
-## ORM perspective
+## Góc nhìn ORM
 
-Spring's `@Transactional` defines a transaction boundary around the proxied method, but self-invocation, asynchronous execution and multiple data sources can change the actual behavior. Verify transaction propagation, isolation and connection usage rather than assuming the annotation is magic.
+Spring `@Transactional` định nghĩa transaction boundary quanh method được proxy, nhưng self-invocation, asynchronous execution và nhiều data source có thể làm behavior thực tế khác đi. Hãy verify transaction propagation, isolation và connection usage thay vì coi annotation là magic.
 
-## Comparison: application validation versus database enforcement
+## So sánh: application validation và database enforcement
 
-| Approach | Strength | Limitation |
+| Approach | Điểm mạnh | Hạn chế |
 | --- | --- | --- |
-| API validation | Fast feedback and friendly errors | Can be bypassed or race with another writer |
-| Service transaction | Groups related statements | Only covers resources enlisted in that transaction |
-| Database constraint | Enforces invariant at write boundary | Does not explain business intent to the user by itself |
-| Lock/isolation strategy | Controls concurrent visibility/conflicts | Adds contention and may require retries |
+| API validation | Feedback nhanh, error thân thiện | Có thể bị bypass hoặc race với writer khác |
+| Service transaction | Gom các statement liên quan | Chỉ bao phủ resource được enlist trong transaction đó |
+| Database constraint | Enforce invariant tại write boundary | Tự nó không giải thích business intent cho user |
+| Lock/isolation strategy | Kiểm soát visibility/conflict đồng thời | Tăng contention và có thể cần retry |
 
-## Common mistakes
+## Sai lầm thường gặp
 
-- Opening a transaction around an entire HTTP request including remote calls.
-- Treating a deadlock or serialization failure as an impossible bug instead of a retryable outcome.
-- Retrying a non-idempotent `INSERT` without a request/idempotency key.
-- Forgetting that a failed PostgreSQL statement marks the current transaction as aborted until rollback.
-- Updating rows without checking the affected-row count.
+- Mở transaction quanh toàn bộ HTTP request, bao gồm cả remote call.
+- Coi deadlock hoặc serialization failure là bug không thể xảy ra thay vì outcome có thể retry.
+- Retry non-idempotent `INSERT` mà không có request/idempotency key.
+- Quên rằng PostgreSQL statement fail sẽ khiến transaction hiện tại ở trạng thái aborted cho đến khi rollback.
+- Update row mà không kiểm tra affected-row count.
 
 ## Lab
 
-Run `sql/labs/02_constraints_and_rollback.sql`. It commits one valid reservation, deliberately violates a `CHECK`, then rolls back. Compare the result with the statements in `sql/foundations/03_dml_and_transactions.sql`, which rolls back the entire demonstration.
+Chạy `sql/labs/02_constraints_and_rollback.sql`. Script commit một reservation hợp lệ, cố ý vi phạm `CHECK` rồi rollback. So sánh kết quả với các statement trong `sql/foundations/03_dml_and_transactions.sql`, nơi rollback toàn bộ demonstration.
 
 ## Mental models
 
-- A transaction is a correctness boundary, not merely a performance wrapper.
-- `COMMIT` makes a group of database changes durable/visible as one outcome; it does not undo external side effects already sent to another system.
-- MVCC gives transactions views of row versions; it does not eliminate the need to reason about invariants and conflicts.
+- Transaction là correctness boundary, không chỉ là performance wrapper.
+- `COMMIT` làm một nhóm database change trở thành một outcome durable/visible; nó không undo external side effect đã gửi sang system khác.
+- MVCC cung cấp view của row version cho transaction; nó không loại bỏ nhu cầu suy luận về invariant và conflict.
 
-## Interview questions
+## Câu hỏi phỏng vấn
 
-1. **Junior — What does `COMMIT` do?**  It ends the current transaction successfully and makes its changes durable/visible according to PostgreSQL's rules.
-2. **Junior — Why is autocommit dangerous for an order placement flow?**  Each statement can commit independently, leaving partial state if a later statement fails.
-3. **Mid — What should a service do after a deadlock or serialization failure?**  Abort the transaction, optionally retry the whole transaction with bounded backoff when the operation is safe to retry.
-4. **Mid — What problem does `ON CONFLICT` solve?**  It turns a uniqueness conflict into an explicit insert-or-update decision, avoiding a fragile check-then-insert race.
-5. **Senior — Why does a database transaction not automatically include a message broker call?**  The broker and database have independent commit protocols; cross-system atomicity needs an explicit pattern such as an outbox and reliable publication.
+1. **Junior — `COMMIT` làm gì?** Nó kết thúc transaction hiện tại thành công và làm change durable/visible theo rule của PostgreSQL.
+2. **Junior — Vì sao autocommit nguy hiểm trong order-placement flow?** Mỗi statement có thể commit độc lập, để lại partial state nếu statement sau fail.
+3. **Mid — Service nên làm gì sau deadlock hoặc serialization failure?** Abort transaction, sau đó có thể retry toàn bộ transaction với bounded backoff nếu operation an toàn để retry.
+4. **Mid — `ON CONFLICT` giải quyết vấn đề gì?** Nó biến uniqueness conflict thành quyết định insert-or-update rõ ràng, tránh race mong manh của check-then-insert.
+5. **Senior — Vì sao database transaction không tự bao gồm message broker call?** Broker và database có commit protocol độc lập; cross-system atomicity cần pattern rõ ràng như outbox và reliable publication.
 
-## References
+## Tài liệu tham khảo
 
 - [PostgreSQL Transactions](https://www.postgresql.org/docs/current/tutorial-transactions.html)
 - [PostgreSQL Transaction Isolation](https://www.postgresql.org/docs/current/transaction-iso.html)
 - [PostgreSQL `INSERT ... ON CONFLICT`](https://www.postgresql.org/docs/current/sql-insert.html)
 - [PostgreSQL Explicit Locking](https://www.postgresql.org/docs/current/explicit-locking.html)
 - [PostgreSQL `VACUUM`](https://www.postgresql.org/docs/current/sql-vacuum.html)
-

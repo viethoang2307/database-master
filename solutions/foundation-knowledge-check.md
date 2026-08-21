@@ -1,15 +1,14 @@
-# Foundation Knowledge Check Answers
+# Đáp án bài kiểm tra kiến thức nền tảng
 
-1. **B.** The planner/optimizer compares possible physical plans using estimates and cost settings.
-2. **False.** A primary key identifies rows but does not promise result order.
-3. `LIMIT` without `ORDER BY` does not define which qualifying rows are returned; a tie-breaker makes page boundaries stable.
-4. Only `NULL IS NULL` is `TRUE`. Equality and inequality with `NULL` evaluate to `UNKNOWN`.
-5. **C.** A foreign key enforces the referenced relationship.
-6. A foreign key enforces correctness, but it does not automatically create every useful index on the referencing side or guarantee a cheap join plan.
-7. It is inclusive at both date endpoints but converts a timestamp column for every row and can mishandle the end-of-day boundary. Prefer `ordered_at >= '2025-03-01' AND ordered_at < '2025-04-01'` with explicit time zone semantics.
-8. **True.** It runs the statement and reports observed execution details; use side-effect statements carefully.
-9. Abort/rollback the transaction and retry the entire logical operation when it is safe and bounded to retry.
-10. **C.** `DROP TABLE` removes the relation definition and its data.
-11. SQL uses three-valued logic: if no known value matches but the set contains `NULL`, the `NOT IN` predicate can be `UNKNOWN`, which does not pass `WHERE`.
-12. Service validation improves feedback and avoids unnecessary database errors; database enforcement protects against races, scripts and other writers.
-
+1. **B.** Planner/optimizer so sánh các physical plan có thể có bằng estimates và cost settings.
+2. **Sai.** Primary key định danh row nhưng không đảm bảo result order.
+3. `LIMIT` không kèm `ORDER BY` không xác định row nào thỏa điều kiện sẽ được trả; tie-breaker làm page boundary ổn định.
+4. Chỉ `NULL IS NULL` là `TRUE`. Equality và inequality với `NULL` evaluate thành `UNKNOWN`.
+5. **C.** Foreign key enforce referenced relationship.
+6. Foreign key đảm bảo correctness nhưng không tự động tạo mọi index hữu ích ở referencing side và không đảm bảo join plan luôn rẻ.
+7. Query inclusive ở cả hai date endpoint nhưng convert timestamp column trên mọi row và có thể xử lý sai end-of-day boundary. Ưu tiên `ordered_at >= '2025-03-01' AND ordered_at < '2025-04-01'` với time-zone semantics rõ ràng.
+8. **Đúng.** `EXPLAIN ANALYZE` chạy statement và báo execution detail quan sát được; phải cẩn thận với statement có side effect.
+9. Abort/rollback transaction rồi retry toàn bộ logical operation khi operation an toàn và có giới hạn retry.
+10. **C.** `DROP TABLE` xóa relation definition và data.
+11. SQL dùng three-valued logic: nếu không có known value nào match nhưng set chứa `NULL`, predicate `NOT IN` có thể là `UNKNOWN` và không pass `WHERE`.
+12. Service validation giúp feedback tốt hơn và tránh database error không cần thiết; database enforcement bảo vệ trước race, script và writer khác.

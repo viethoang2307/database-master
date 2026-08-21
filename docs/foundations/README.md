@@ -1,25 +1,25 @@
-# Foundation Sprint
+# Sprint nền tảng
 
-## Lesson overview
+## Tổng quan lesson
 
-This sprint builds the mental model needed before using an ORM or a framework. The learner moves from “a database stores data” to a more precise model: a PostgreSQL server accepts SQL, parses it, plans an execution strategy, executes against relations and indexes, and enforces constraints while coordinating concurrent transactions.
+Sprint này xây dựng mental model cần có trước khi dùng ORM hoặc framework. Người học đi từ cách hiểu “database lưu dữ liệu” đến mô hình chính xác hơn: một PostgreSQL server nhận SQL, parse câu lệnh, lập execution strategy, thực thi trên relations và indexes, enforce constraints, đồng thời điều phối các transaction chạy đồng thời.
 
-## Learning objectives
+## Mục tiêu học tập
 
-After completing this sprint, the student should be able to:
+Sau khi hoàn thành sprint, bạn có thể:
 
-- Distinguish a database, DBMS, schema, table, row, column and SQL statement.
-- Explain the path from a backend request to a PostgreSQL execution plan.
-- Write deterministic `SELECT` queries with projection, filtering, ordering and pagination.
-- Design a small relational schema with primary keys, foreign keys, unique, `NOT NULL` and `CHECK` constraints.
-- Explain why constraints belong in the database even when the service validates input.
-- Use `INSERT`, `UPDATE`, `DELETE`, `ON CONFLICT` and explicit transactions safely.
-- Predict how `NULL` and three-valued logic affect predicates.
-- Use `EXPLAIN (ANALYZE, BUFFERS)` as evidence rather than guessing about performance.
+- Phân biệt database, DBMS, schema, table, row, column và SQL statement.
+- Giải thích đường đi từ backend request đến PostgreSQL execution plan.
+- Viết truy vấn `SELECT` có kết quả xác định với projection, filtering, ordering và pagination.
+- Thiết kế relational schema nhỏ có primary key, foreign key, unique, `NOT NULL` và `CHECK` constraint.
+- Giải thích vì sao constraint phải nằm trong database ngay cả khi service đã validate input.
+- Dùng `INSERT`, `UPDATE`, `DELETE`, `ON CONFLICT` và explicit transaction an toàn.
+- Dự đoán `NULL` và three-valued logic ảnh hưởng đến predicate như thế nào.
+- Dùng `EXPLAIN (ANALYZE, BUFFERS)` làm bằng chứng thay vì đoán performance.
 
-## Big picture
+## Bức tranh lớn
 
-```text
+~~~text
 HTTP request
     |
     v
@@ -31,7 +31,7 @@ SQL + parameters
     v
 PostgreSQL connection
     |
-    +--> Parser and analyzer
+    +--> Parser và analyzer
     |
     +--> Planner / optimizer
     |
@@ -40,20 +40,19 @@ PostgreSQL connection
               +--> indexes
               +--> buffer cache
               +--> heap/table pages
-              +--> WAL and transaction visibility
-```
+              +--> WAL và transaction visibility
+~~~
 
-The application describes *what* it wants. PostgreSQL decides *how* to obtain it while preserving the relational and transactional rules declared in the schema.
+Application mô tả *muốn kết quả gì*. PostgreSQL quyết định *lấy kết quả đó bằng cách nào* trong khi vẫn giữ các quy tắc relational và transactional đã khai báo trong schema.
 
-## Lessons
+## Các lesson
 
-1. [Database, DBMS, SQL and PostgreSQL](01-database-dbms-sql-postgresql.md)
-2. [Query lifecycle and `SELECT`](02-query-lifecycle-and-select.md)
-3. [DDL, data types and constraints](03-ddl-data-types-and-constraints.md)
-4. [DML and transaction boundaries](04-dml-and-transactions.md)
-5. [Filtering, `NULL` and three-valued logic](05-filtering-null-and-case.md)
+1. [Database, DBMS, SQL và PostgreSQL](01-database-dbms-sql-postgresql.md)
+2. [Vòng đời query và `SELECT`](02-query-lifecycle-and-select.md)
+3. [DDL, data types và constraints](03-ddl-data-types-and-constraints.md)
+4. [DML và transaction boundary](04-dml-and-transactions.md)
+5. [Filtering, `NULL` và three-valued logic](05-filtering-null-and-case.md)
 
-## Shared lab data
+## Dữ liệu dùng chung cho lab
 
-Run the root bootstrap first. It creates the `sales` schema and deterministic seed data. The demo data is intentionally small for reasoning; the query-plan lab creates a temporary larger relation so plan choices become observable.
-
+Chạy bootstrap ở root trước. Lệnh này tạo schema `sales` và seed data có tính xác định. Demo data cố ý nhỏ để dễ suy luận; query-plan lab sẽ tạo một relation tạm thời lớn hơn để các lựa chọn plan có thể quan sát được.

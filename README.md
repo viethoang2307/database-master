@@ -1,41 +1,41 @@
 # Database Master
 
-Curriculum học Database Engineering theo hướng Backend, dùng PostgreSQL làm database chuẩn chạy chính.
+Curriculum học Database Engineering theo hướng Backend, dùng PostgreSQL làm Database chuẩn để thực hành.
 
-Repository này tái cấu trúc một khóa SQL lớn thành tài liệu học có thứ tự, SQL executable, lab, exercises và production notes. Mục tiêu là hiểu cả câu lệnh SQL, mô hình quan hệ, query planner, storage behavior, transaction và cách các quyết định database ảnh hưởng đến backend service.
+Repository này tái cấu trúc một khóa học SQL lớn thành tài liệu có thứ tự, SQL có thể chạy được, lab, bài tập và ghi chú production. Mục tiêu là hiểu cả câu lệnh SQL, mô hình quan hệ, query planner, cách lưu trữ, transaction và ảnh hưởng của các quyết định Database lên backend service.
 
-## Quick start
+## Bắt đầu nhanh
 
 Yêu cầu:
 
-- Docker Desktop với Docker Compose.
-- `psql` là tùy chọn; mọi lệnh chính có thể chạy qua container.
+- Docker Desktop có Docker Compose.
+- `psql` là tùy chọn; các lệnh chính có thể chạy qua container.
 
-```powershell
+~~~powershell
 Copy-Item .env.example .env
 ./scripts/bootstrap.ps1
 ./scripts/check.ps1
-```
+~~~
 
 Kết nối thủ công:
 
-```powershell
+~~~powershell
 docker compose exec postgres psql -U db_student -d database_master
-```
+~~~
 
 Dừng container nhưng giữ dữ liệu:
 
-```powershell
+~~~powershell
 docker compose down
-```
+~~~
 
 Xóa toàn bộ dữ liệu lab chỉ khi thực sự muốn reset:
 
-```powershell
+~~~powershell
 ./scripts/reset.ps1 -ConfirmReset
-```
+~~~
 
-## Học theo thứ tự
+## Cách học
 
 1. Đọc [ROADMAP.md](ROADMAP.md).
 2. Chạy bootstrap và đọc lesson tương ứng trong `docs/`.
@@ -47,9 +47,9 @@ Foundation Sprint hiện bao gồm SQL/DBMS fundamentals, PostgreSQL setup, quer
 
 ## Nguyên tắc của project
 
-- PostgreSQL là canonical dialect.
-- SQL Server/T-SQL trong transcript được chuyển đổi, không copy máy móc.
+- PostgreSQL là dialect chuẩn để chạy code.
+- SQL Server/T-SQL trong transcript được chuyển đổi có giải thích, không copy máy móc.
 - Performance claims phải được kiểm chứng bằng execution plan và dữ liệu thực nghiệm.
 - Constraint và transaction boundary thuộc database design, không chỉ là trách nhiệm của ORM.
 - Raw transcript không được commit; [transcript coverage map](docs/transcript-coverage.md) ghi lại phạm vi đã xử lý.
-
+- Phần giải thích viết bằng tiếng Việt; SQL keywords và thuật ngữ kỹ thuật phổ biến được giữ bằng English để dễ tra cứu và phỏng vấn.
