@@ -7,7 +7,7 @@
 | 0 | Định hướng | Mental model về Database, công cụ và workflow học | Foundation Sprint |
 | 1 | SQL nền tảng | `SELECT`, DDL, constraints, DML và transactions | Foundation Sprint |
 | 2 | Truy vấn dữ liệu | Filtering, `NULL`, `CASE`, sorting và pagination | Foundation Sprint |
-| 3 | Kết hợp dữ liệu | Inner/outer joins, anti-joins và set operators | Đã lên kế hoạch |
+| 3 | Kết hợp dữ liệu | Inner/outer joins, anti-joins và set operators | Đang triển khai — Querying Sprint |
 | 4 | Biến đổi và phân tích | String/date/numeric functions và aggregates | Đã lên kế hoạch |
 | 5 | Window functions | Aggregate, ranking và value windows | Đã lên kế hoạch |
 | 6 | SQL phức tạp | Subqueries, CTEs, views, CTAS và temp tables | Đã lên kế hoạch |
