@@ -50,3 +50,13 @@ Chạy bootstrap ở root trước. Lesson dùng các relation `sales.customers`
 - [Bài tập Querying Sprint](../../exercises/querying-exercises.md)
 - [Lời giải Querying Sprint](../../solutions/querying-solutions.md)
 - [SQL lab: JOIN và set operators](../../sql/querying/01_joins_and_sets.sql)
+
+## Đối chiếu transcript
+
+Lesson đầu tiên được xây dựng từ transcript **035–055**:
+
+- 035–036: mental model JOIN/set operator và No JOIN.
+- 037–046: INNER, LEFT, RIGHT, FULL, anti-join, CROSS JOIN, cách chọn JOIN và multiple-table join.
+- 047–055: rules, UNION, UNION ALL, EXCEPT, INTERSECT, combine information và delta detection.
+
+Ví dụ SQL Server trong transcript được chuyển sang PostgreSQL nhưng giữ nguyên câu hỏi business và result shape.

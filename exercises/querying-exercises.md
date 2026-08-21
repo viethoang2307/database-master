@@ -92,3 +92,27 @@ WHERE o.order_status = 'paid';
 ## Bài cần nộp
 
 Với mỗi bài Level 2, ghi query và expected result shape. Với Level 3, ghi invariant, cardinality giả định, transaction/API boundary, index hoặc plan evidence cần kiểm tra và trade-off.
+
+## Bổ sung theo transcript 035–055
+
+### Level 1  Nhớ và giải thích
+
+9. Vì sao No JOIN không phải một join type? Backend phải xử lý hai result set như thế nào?
+10. Phân biệt left anti-join, right anti-join và full anti-join.
+11. Vì sao thứ tự hai query quan trọng với EXCEPT nhưng thường không đổi tập row với INTERSECT?
+12. Trong set operator, vì sao hai column cùng type nhưng khác vị trí business vẫn có thể tạo dữ liệu sai?
+13. Nhánh nào quyết định tên alias output của một set expression?
+
+### Level 2  Áp dụng
+
+9. Viết query lấy customer không có order bằng cả NOT EXISTS và LEFT JOIN ... IS NULL.
+10. Viết full anti-join để tìm customer không có order và order không có customer.
+11. Viết query hợp nhất current/archive orders bằng UNION ALL và thêm source_table.
+12. Viết query dùng EXCEPT tìm customer xuất hiện trong batch ngày 2 nhưng không có trong batch ngày 1.
+13. Viết query 3 bảng lấy order, customer và product; nêu rõ grain của output và vì sao một order có thể lặp nhiều row.
+
+### Level 3  Engineering
+
+6. Thiết kế reconciliation giữa orders và payments: output phải phân biệt matched, only_order, only_payment; xử lý duplicate business key như thế nào?
+7. Một pipeline dùng UNION để append event từ hai partition và latency tăng mạnh. Quyết định có đổi sang UNION ALL không; invariant nào phải kiểm chứng?
+8. Một migration báo hai bảng giống nhau vì cả hai phép EXCEPT đều rỗng. Nêu các trường hợp kết luận này vẫn chưa đủ an toàn.

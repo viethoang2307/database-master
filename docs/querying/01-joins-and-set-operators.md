@@ -551,6 +551,127 @@ Execution plans và indexing strategy
 
 Hiểu row shape của join là prerequisite để đọc aggregate, window function và ORM fetch plan.
 
+
+## Transcript alignment additions — bài 035–055
+
+Phần này ghi lại những điểm cụ thể trong transcript được bổ sung hoặc hiệu chỉnh khi chuyển lesson sang PostgreSQL.
+
+### 035–036: JOIN, set operator và No JOIN
+
+- JOIN kết hợp column của hai relation theo một predicate/key; set operator kết hợp hoặc so sánh row theo một result shape tương thích.
+- No JOIN không phải một join type. Hai câu SELECT độc lập tạo hai result set độc lập. Pattern này phù hợp khi API có hai collection riêng; nếu application phải tự ghép customer với order trong vòng lặp, hãy cân nhắc JOIN hoặc batch fetch để tránh N+1.
+- JOIN cần xác định key liên kết. Set operator cần cùng số column, type tương thích và cùng ý nghĩa theo vị trí.
+
+### 037–040: INNER, LEFT, RIGHT và FULL JOIN
+
+- INNER JOIN chỉ giữ các cặp có match; nếu bỏ từ khóa type trong PostgreSQL thì JOIN mặc định là INNER JOIN, nhưng nên viết tường minh trong code review.
+- LEFT JOIN giữ toàn bộ row bên trái và null-extend phía phải khi không match. Predicate giới hạn row bên phải nên đặt trong ON nếu vẫn muốn giữ parent không có match.
+- RIGHT JOIN có thể biểu đạt bằng cách đổi thứ tự bảng rồi dùng LEFT JOIN; cách đó thường làm bảng chính rõ hơn.
+- FULL OUTER JOIN giữ mọi row từ cả hai phía. Nó hữu ích cho reconciliation khi cần thấy match, only-left và only-right.
+
+### 041–043: ba dạng anti-join
+
+Không có keyword portable LEFT ANTI JOIN, RIGHT ANTI JOIN hay FULL ANTI JOIN.
+
+Left anti-join có thể viết bằng NOT EXISTS:
+
+~~~sql
+SELECT p.product_id, p.product_name
+FROM sales.products AS p
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM sales.order_items AS oi
+    WHERE oi.product_id = p.product_id
+);
+~~~
+
+Hoặc bằng LEFT JOIN và kiểm tra một key không nullable ở phía phải:
+
+~~~sql
+SELECT p.product_id, p.product_name
+FROM sales.products AS p
+LEFT JOIN sales.order_items AS oi
+  ON oi.product_id = p.product_id
+WHERE oi.product_id IS NULL;
+~~~
+
+Right anti-join giữ row phía phải không có match. Full anti-join giữ phần không match ở cả hai phía:
+
+~~~sql
+SELECT c.customer_id, o.order_id
+FROM sales.customers AS c
+FULL OUTER JOIN sales.orders AS o
+  ON o.customer_id = c.customer_id
+WHERE c.customer_id IS NULL
+   OR o.order_id IS NULL;
+~~~
+
+Schema repository có foreign key từ orders đến customers, vì vậy phía orphan order thường rỗng trong dữ liệu hợp lệ. Pattern vẫn quan trọng khi đọc staging hoặc đối soát hai nguồn chưa có constraint.
+
+### 044–046: CROSS JOIN, chọn JOIN và nhiều bảng
+
+CROSS JOIN tạo Cartesian product. Hai input có lần lượt m và n row sẽ tạo m nhân n cặp trước khi các bước sau lọc; quên điều kiện join trên bảng lớn có thể gây row explosion.
+
+Decision tree:
+
+1. Chỉ cần match hai phía: INNER JOIN.
+2. Giữ toàn bộ bảng chính và thêm dữ liệu nếu có: LEFT JOIN.
+3. Giữ toàn bộ hai nguồn ngang hàng: FULL OUTER JOIN.
+4. Tìm phần không match một phía: left/right anti-join.
+5. Tạo mọi combination có chủ đích: CROSS JOIN.
+6. Cần hai danh sách riêng: hai SELECT độc lập.
+
+Với multiple-table join, xác định grain trước. Query bắt đầu từ orders rồi nối customers, order_items và products có grain là order item; một order có nhiều item nên order columns lặp. Nếu cần một row/order, aggregate theo order_id hoặc pre-aggregate order_items trước khi join. Luôn dùng alias, qualify column và kiểm tra đúng foreign key.
+
+### 047–052: SET rules và bốn operator
+
+Các nhánh của set expression phải có cùng số column; column tương ứng cần type tương thích; mapping là theo vị trí, không theo tên. ORDER BY nên đặt một lần ở query cuối. Alias output lấy từ nhánh đầu tiên. PostgreSQL thực hiện type resolution để chọn common type, nên diễn đạt chính xác hơn rằng type phải tương thích thay vì nói nhánh đầu luôn quyết định type.
+
+- UNION loại duplicate.
+- UNION ALL giữ duplicate và thường tránh bước distinct.
+- EXCEPT có hướng: Q1 EXCEPT Q2 khác Q2 EXCEPT Q1.
+- INTERSECT lấy row chung của hai query và thường không đổi tập row khi đổi thứ tự.
+
+SQL có thể chạy mà vẫn sai nghĩa nếu developer đảo thứ tự business columns. Không dùng SELECT * khi hợp nhất current/archive hoặc nhiều nguồn có nguy cơ schema drift.
+
+### 053–055: combine information và delta detection
+
+Combine information dùng UNION hoặc UNION ALL để hợp nhất các nguồn cùng business shape, chẳng hạn current orders và archive orders. Nên thêm một column tĩnh như source_table để truy vết nguồn.
+
+Delta detection dùng EXCEPT để lấy batch ngày 2 trừ batch ngày 1:
+
+~~~sql
+WITH day_1(customer_id, email) AS (
+    VALUES (1, 'a@example.com'), (2, 'b@example.com')
+),
+day_2(customer_id, email) AS (
+    VALUES
+        (1, 'a@example.com'),
+        (2, 'b@example.com'),
+        (3, 'c@example.com')
+)
+SELECT customer_id, email FROM day_2
+EXCEPT
+SELECT customer_id, email FROM day_1;
+~~~
+
+Kết quả là customer 3 theo projection đã chọn. Khi kiểm tra migration, chạy cả source EXCEPT target và target EXCEPT source. Hai kết quả rỗng chỉ chứng minh hai projection/snapshot không khác nhau; vẫn phải xem xét duplicate, column bị bỏ qua, business key và tính nhất quán của snapshot.
+
+### Hiệu chỉnh quan trọng so với cách nói rút gọn
+
+Transcript dùng ví dụ Sales SQL Server và có thể gọi EXCEPT là phép so sánh đơn giản. Trong production, cần phân biệt set equality với equality có multiplicity, kiểm tra result grain và không dùng anti-join thay cho unique/foreign-key constraint. Các ví dụ trong repository là PostgreSQL; hành vi khác vendor phải được kiểm tra theo documentation của DBMS đang dùng.
+
+## Transcript Coverage Map
+
+| Transcript | Nội dung | Nơi triển khai |
+| --- | --- | --- |
+| 035–036 | Mental model JOIN/set operator và No JOIN | Concept 1, phần bổ sung 035–036 |
+| 037–040 | INNER, LEFT, RIGHT, FULL JOIN | Concepts 2–3, phần bổ sung |
+| 041–043 | Left/right/full anti-join | Concept 5, phần bổ sung |
+| 044–046 | CROSS JOIN, quyết định JOIN, nhiều bảng | Concept 4, phần bổ sung |
+| 047–052 | Rules, UNION, UNION ALL, EXCEPT, INTERSECT | Concept 6 |
+| 053–055 | Combine information, delta detection, summary | Concept 6, phần bổ sung |
+
 ## Tài liệu tham khảo
 
 - [PostgreSQL Table Expressions — joins](https://www.postgresql.org/docs/current/queries-table-expressions.html)

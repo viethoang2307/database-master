@@ -12,7 +12,10 @@ Transcript nguồn là một khóa học SQL Server. Bảng này ghi lại cách
 | 021–023 | `docs/performance/` | Index, partition và performance principle | Đã lên kế hoạch |
 | 024 | `docs/advanced-sql/` | Responsible AI assistance cho SQL development | Đã lên kế hoạch |
 | 025 | `docs/data-warehouse/` | Định hình data warehouse project | Đã lên kế hoạch |
-| 027–099 | `docs/querying/` | Predicate, join, set operator, transformation, NULL và `CASE` | Đã triển khai phần JOIN; phần còn lại theo kế hoạch |
+| 027–034 | docs/querying/ | Predicate và prerequisite cho querying | Đã lên kế hoạch |
+| 035–046 | docs/querying/ | No JOIN, JOIN types, anti-join, CROSS JOIN, cách chọn JOIN và multiple-table JOIN | Đã triển khai theo transcript |
+| 047–055 | docs/querying/ | SET rules, UNION, UNION ALL, EXCEPT, INTERSECT, combine và delta detection | Đã triển khai theo transcript |
+| 056–099 | docs/querying/ | Transformation, NULL, CASE và querying tiếp theo | Đã lên kế hoạch |
 | 100–134 | `docs/querying/` | Window aggregate, ranking và value function | Đã lên kế hoạch |
 | 135–159 | `docs/advanced-sql/` | Subquery và CTE | Đã lên kế hoạch |
 | 160–198 | `docs/advanced-sql/` | Architecture, view, table, CTAS, temp table, procedure và trigger | Đã lên kế hoạch |
