@@ -45,6 +45,8 @@ Xóa toàn bộ dữ liệu lab chỉ khi thực sự muốn reset:
 
 Foundation Sprint hiện bao gồm SQL/DBMS fundamentals, PostgreSQL setup, query lifecycle, `SELECT`, DDL, constraints, DML, transactions, filtering và `NULL`.
 
+Querying Sprint đã bắt đầu với [JOIN, anti-join và set operators](docs/querying/01-joins-and-set-operators.md), kèm [bài tập](exercises/querying-exercises.md) và [SQL lab](sql/querying/01_joins_and_sets.sql).
+
 ## Nguyên tắc của project
 
 - PostgreSQL là dialect chuẩn để chạy code.

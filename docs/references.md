@@ -14,5 +14,8 @@ Các tài liệu chính dùng để kiểm chứng kỹ thuật:
 10. [PostgreSQL `VACUUM`](https://www.postgresql.org/docs/current/sql-vacuum.html) — dead tuple, space reuse và `VACUUM ANALYZE`.
 11. [PostgreSQL Rule System and Views](https://www.postgresql.org/docs/current/rules.html) — view rewriting và khác biệt giữa rule, function và trigger.
 12. [PostgreSQL Data Types](https://www.postgresql.org/docs/current/datatype.html) — built-in type và cách chọn type.
+13. [PostgreSQL Table Expressions](https://www.postgresql.org/docs/current/queries-table-expressions.html) — table expression, inner/outer/cross join và join condition.
+14. [PostgreSQL Combining Queries](https://www.postgresql.org/docs/current/queries-union.html) — `UNION`, `UNION ALL`, `INTERSECT`, `EXCEPT` và union compatibility.
+15. [PostgreSQL Subquery Expressions](https://www.postgresql.org/docs/current/functions-subquery.html) — `EXISTS`, `NOT EXISTS` và semantics của subquery.
 
 Transcript là nguồn chính cho thứ tự lesson và ví dụ, nhưng PostgreSQL documentation có thẩm quyền được ưu tiên khi semantics xung đột.
